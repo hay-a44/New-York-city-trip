@@ -67,3 +67,12 @@ WHERE
   rank = 1
 ORDER BY
   date;
+
+#the following code allows us to see the most famous route for the city bike users.
+
+SELECT  CONCAT(start_station_name, "to", end_station_name) as Station_trip,
+COUNT(*) as Trip_count
+FROM `bigquery-public-data.new_york.citibike_trips` 
+group by Station_trip
+ORDER BY Trip_count desc
+LIMIT 10000
