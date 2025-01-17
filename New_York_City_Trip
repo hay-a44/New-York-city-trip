@@ -1,0 +1,69 @@
+#In this analysis, we are comparing the genders (male and female) who completed the longest trips in New York City, without restricting the data to specific stations. 
+#The dataset also includes a birth year column, indicating the riders' ages. The plotted graph shows that, on average, females had longer trip durations compared to males. 
+#Additionally, individuals born between 1975 and 1995 were found to have completed the longest trips for both genders.
+
+SELECT gender, tripduration, birth_year
+FROM `bigquery-public-data.new_york.citibike_trips`
+where gender not like '%unknown%'
+order by tripduration desc
+limit 10000
+
+#In this query, I tried to separate the trip count based on the start and end stations and then convert the trip duration into minutes format.
+SELECT   
+  usertype,
+  CONCAT (start_station_name, " to ", end_station_name) AS route,
+  COUNT(*) as num_trips,
+  ROUND(AVG(cast(tripduration as int64)/60), 2) AS duration
+FROM 
+  `bigquery-public-data.new_york.citibike_trips`
+GROUP BY
+  start_station_name, end_station_name, usertype
+ORDER BY
+  num_trips DESC
+LIMIT 10000
+
+#The below query allows us to divide time by hour and observe the busy hour of the day, it can be seen that most trips of the day were started at 6:00 
+
+SELECT TIMESTAMP_TRUNC(starttime, HOUR) as By_Hour_time, usertype,
+COUNT(*) as num_trips
+FROM 
+  `bigquery-public-data.new_york.citibike_trips`
+GROUP BY
+  By_Hour_time, usertype
+ORDER BY
+  num_trips desc
+LIMIT 10000
+
+#To see the busiest hour of the day and the busiest month of the year, i created a table which find the maximum trip during the day and and separate the hour, by sorting the data in descending
+#order, one can find the maximum of trip during the day
+
+WITH daily_hourly_trip_count AS (
+  SELECT
+    DATE(starttime) AS date,
+    EXTRACT(HOUR FROM starttime) AS hour,
+    COUNT(*) AS trip_count
+  FROM
+    `bigquery-public-data.new_york.citibike_trips`
+    
+  GROUP BY
+    date, hour
+),
+max_trip_per_day AS (
+  SELECT
+    date,
+    hour,
+    trip_count,
+    RANK() OVER (PARTITION BY date ORDER BY trip_count DESC) AS rank
+  FROM
+    daily_hourly_trip_count
+)
+SELECT
+  date,
+  hour,
+  trip_count
+FROM
+  max_trip_per_day
+WHERE
+  rank = 1
+ORDER BY
+  date;
